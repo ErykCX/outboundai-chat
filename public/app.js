@@ -621,24 +621,11 @@ document.getElementById('chat-form')?.addEventListener('submit', async (e) => {
   await loadChatView();
 });
 
-document.getElementById('chat-clear')?.addEventListener('click', () => {
-  resetChatRuntime();
-  const cidInput = document.getElementById('chat-call-id');
-  const view = document.getElementById('chat-view');
-  const meta = document.getElementById('chat-meta');
-  const input = document.getElementById('chat-input');
-  if (cidInput) cidInput.value = chatRuntime.call_id;
-  if (view) view.innerHTML = '';
-  if (meta) meta.textContent = `call_id: ${chatRuntime.call_id} � state: intro � end_call: false`;
-  if (input) input.focus();
-});
-
-document.getElementById('chat-send-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
+async function sendChatTurn(text) {
   const input = document.getElementById('chat-input');
   const meta = document.getElementById('chat-meta');
-  const text = (input?.value || '').trim();
-  if (!text) return;
+  const cleanText = String(text || '').trim();
+  if (!cleanText) return;
 
   const manualCallId = (document.getElementById('chat-call-id')?.value || '').trim();
   if (manualCallId) chatRuntime.call_id = manualCallId;
@@ -646,11 +633,11 @@ document.getElementById('chat-send-form')?.addEventListener('submit', async (e) 
     project: 'rheinpfalz',
     call_id: chatRuntime.call_id || `chat-${Date.now()}`,
     current_state: chatRuntime.current_state || 'intro',
-    customer_text: text,
+    customer_text: cleanText,
     context: chatRuntime.context || {}
   };
 
-  appendChatMessage('user', text, {
+  appendChatMessage('user', cleanText, {
     request_preview: {
       current_state: payload.current_state,
       customer_text: payload.customer_text,
@@ -658,7 +645,7 @@ document.getElementById('chat-send-form')?.addEventListener('submit', async (e) 
     }
   });
   if (input) input.value = '';
-  if (meta) meta.textContent = `call_id: ${payload.call_id} � state: ${payload.current_state}`;
+  if (meta) meta.textContent = `call_id: ${payload.call_id} | state: ${payload.current_state}`;
 
   const res = await fetch('/api/chat/send', {
     method: 'POST',
@@ -670,6 +657,7 @@ document.getElementById('chat-send-form')?.addEventListener('submit', async (e) 
     appendChatMessage('bot', `Fehler: ${data.error || 'unknown'}`, data);
     return;
   }
+
   const r = data.response || {};
   const botText = r.tool_response || '[leer]';
   appendChatMessage('bot', botText, {
@@ -679,11 +667,33 @@ document.getElementById('chat-send-form')?.addEventListener('submit', async (e) 
   chatRuntime.call_id = data.call_id;
   chatRuntime.current_state = r.next_state || chatRuntime.current_state;
   chatRuntime.context = { ...(chatRuntime.context || {}), ...(r.context_patch || {}) };
+
   const cidInput = document.getElementById('chat-call-id');
   if (cidInput && !cidInput.value) cidInput.value = chatRuntime.call_id;
   if (meta) {
-    meta.textContent = `call_id: ${chatRuntime.call_id} � state: ${chatRuntime.current_state} � end_call: ${String(Boolean(r.end_call))}`;
+    meta.textContent = `call_id: ${chatRuntime.call_id} | state: ${chatRuntime.current_state} | end_call: ${String(Boolean(r.end_call))}`;
   }
+}
+
+document.getElementById('chat-clear')?.addEventListener('click', async () => {
+  resetChatRuntime();
+  const cidInput = document.getElementById('chat-call-id');
+  const view = document.getElementById('chat-view');
+  const meta = document.getElementById('chat-meta');
+  const input = document.getElementById('chat-input');
+
+  if (cidInput) cidInput.value = chatRuntime.call_id;
+  if (view) view.innerHTML = '';
+  if (meta) meta.textContent = `call_id: ${chatRuntime.call_id} | state: intro | end_call: false`;
+  if (input) input.focus();
+
+  await sendChatTurn('Hallo');
+});
+
+document.getElementById('chat-send-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = (document.getElementById('chat-input')?.value || '').trim();
+  await sendChatTurn(text);
 });
 
 document.getElementById('fact-form').addEventListener('submit', async (e) => {
