@@ -1,14 +1,33 @@
-﻿const tabs = document.querySelectorAll('.tab');
+const tabs = document.querySelectorAll('.tab');
 const panels = document.querySelectorAll('.panel');
+let UI_CHAT_ONLY = false;
+
+function activateTab(tabName) {
+  tabs.forEach((t) => t.classList.remove('active'));
+  panels.forEach((p) => p.classList.remove('active'));
+  const tabEl = [...tabs].find((t) => t.dataset.tab === tabName);
+  const panelEl = document.getElementById(tabName);
+  if (tabEl) tabEl.classList.add('active');
+  if (panelEl) panelEl.classList.add('active');
+}
 
 tabs.forEach((tab) => {
   tab.addEventListener('click', () => {
-    tabs.forEach((t) => t.classList.remove('active'));
-    panels.forEach((p) => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById(tab.dataset.tab).classList.add('active');
+    activateTab(tab.dataset.tab);
   });
 });
+
+function applyUiMode() {
+  if (!UI_CHAT_ONLY) return;
+  tabs.forEach((tab) => {
+    const keep = tab.dataset.tab === 'chat';
+    tab.style.display = keep ? '' : 'none';
+  });
+  panels.forEach((panel) => {
+    panel.style.display = panel.id === 'chat' ? '' : 'none';
+  });
+  activateTab('chat');
+}
 
 function esc(v) {
   return String(v ?? '')
@@ -168,7 +187,7 @@ async function loadChatView() {
   const meta = document.getElementById('chat-meta');
   const view = document.getElementById('chat-view');
   if (!meta || !view) return;
-  meta.textContent = data.call_id ? `call_id: ${data.call_id}` : 'Kein Gespräch gefunden.';
+  meta.textContent = data.call_id ? `call_id: ${data.call_id}` : 'Kein Gespr�ch gefunden.';
   if (data.call_id) chatRuntime.call_id = data.call_id;
   view.innerHTML = '';
   if (!Array.isArray(data.messages) || !data.messages.length) {
@@ -179,7 +198,7 @@ async function loadChatView() {
     const row = document.createElement('div');
     row.className = `msg ${m.role === 'user' ? 'user' : 'bot'}`;
     const when = m.created_at ? new Date(m.created_at).toLocaleTimeString('de-DE') : '';
-    row.innerHTML = renderMessageHtml(m.role, m.text, `${m.role} ${when ? `• ${when}` : ''}`, m.info || null);
+    row.innerHTML = renderMessageHtml(m.role, m.text, `${m.role} ${when ? `� ${when}` : ''}`, m.info || null);
     bindInfoButtons(row);
     view.appendChild(row);
   });
@@ -206,7 +225,7 @@ async function loadFacts() {
   (data.facts || []).forEach((f) => {
     const el = document.createElement('div');
     el.className = 'item';
-    el.innerHTML = `<strong>${esc(f.key)}</strong><code>${esc(f.value)}</code><small>active: ${esc(f.active)}</small><br><button data-id="${f.id}">Löschen</button>`;
+    el.innerHTML = `<strong>${esc(f.key)}</strong><code>${esc(f.value)}</code><small>active: ${esc(f.active)}</small><br><button data-id="${f.id}">L�schen</button>`;
     el.querySelector('button').addEventListener('click', async () => {
       await fetch(`/api/kb/facts/${f.id}`, { method: 'DELETE' });
       await loadFacts();
@@ -221,7 +240,7 @@ async function loadFacts() {
   (idata.intents || []).forEach((i) => {
     const el = document.createElement('div');
     el.className = 'item';
-    el.innerHTML = `<strong>${esc(i.key)}</strong><code>${esc((i.phrases || []).join(', '))}</code><button data-key="${esc(i.key)}">Löschen</button>`;
+    el.innerHTML = `<strong>${esc(i.key)}</strong><code>${esc((i.phrases || []).join(', '))}</code><button data-key="${esc(i.key)}">L�schen</button>`;
     el.querySelector('button').addEventListener('click', async () => {
       await fetch(`/api/intents/${encodeURIComponent(i.key)}`, { method: 'DELETE' });
       await loadFacts();
@@ -244,7 +263,7 @@ async function loadFacts() {
     orderedStates.forEach((s) => {
       const opt = document.createElement('option');
       opt.value = s.key;
-      opt.textContent = `${s.key}${s.goal ? ` — ${s.goal}` : ''}`;
+      opt.textContent = `${s.key}${s.goal ? ` � ${s.goal}` : ''}`;
       if (s.key === selected) opt.selected = true;
       simState.appendChild(opt);
     });
@@ -277,7 +296,7 @@ async function loadFacts() {
       lines.push(`${indent}${stateKey}`);
       const next = Array.isArray(s.next_states) ? s.next_states : [];
       next.forEach((n, i) => {
-        const branch = i === next.length - 1 ? '└─ ' : '├─ ';
+        const branch = i === next.length - 1 ? '+- ' : '+- ';
         lines.push(`${indent}${branch}${n}`);
       });
     }
@@ -301,7 +320,7 @@ async function loadLearningQueue() {
   const q = (document.getElementById('learning-search')?.value || '').trim();
   const root = document.getElementById('learning-list');
   if (!root) return;
-  root.innerHTML = 'Lädt...';
+  root.innerHTML = 'L�dt...';
   const res = await fetch(`/api/learning/questions?project=rheinpfalz&status=${encodeURIComponent(status)}&state=${encodeURIComponent(stateFilter)}&q=${encodeURIComponent(q)}`);
   const data = await res.json();
   if (!res.ok) {
@@ -310,7 +329,7 @@ async function loadLearningQueue() {
   }
   const items = data.items || [];
   if (!items.length) {
-    root.textContent = 'Keine Einträge.';
+    root.textContent = 'Keine Eintr�ge.';
     return;
   }
   root.innerHTML = '';
@@ -332,7 +351,7 @@ async function loadLearningQueue() {
       </div>
       <textarea class="learning-approve" placeholder="Eigene Antwort speichern...">${esc(q.approved_response || '')}</textarea>
       <button class="learning-save">Freigeben (Speichern)</button>
-      <button class="learning-delete">Löschen</button>
+      <button class="learning-delete">L�schen</button>
     `;
     const btn = el.querySelector('.learning-save');
     const delBtn = el.querySelector('.learning-delete');
@@ -361,7 +380,7 @@ async function loadLearningQueue() {
       }
     });
     delBtn?.addEventListener('click', async () => {
-      if (!window.confirm(`Frage #${q.id} wirklich löschen?`)) return;
+      if (!window.confirm(`Frage #${q.id} wirklich l�schen?`)) return;
       const r = await fetch(`/api/learning/questions/${q.id}?cascade=true`, { method: 'DELETE' });
       if (r.ok) await loadLearningQueue();
     });
@@ -443,11 +462,11 @@ function renderResponseVariantsSection(title, rows, projectKey = 'rheinpfalz') {
     const tr = document.createElement('tr');
     const actionTd = document.createElement('td');
     const btn = document.createElement('button');
-    btn.textContent = 'Löschen';
+    btn.textContent = 'L�schen';
     btn.addEventListener('click', async () => {
       const id = r.id;
       if (!id) return;
-      if (!window.confirm(`Variant #${id} wirklich löschen?`)) return;
+      if (!window.confirm(`Variant #${id} wirklich l�schen?`)) return;
       const res = await fetch(`/api/response-variants/${encodeURIComponent(id)}?project=${encodeURIComponent(projectKey)}`, {
         method: 'DELETE'
       });
@@ -576,7 +595,7 @@ document.getElementById('simulate-form').addEventListener('submit', async (e) =>
     human_recovery_attempted: Boolean(document.getElementById('ctx-human')?.checked)
   };
   const out = document.getElementById('sim-minimal');
-  out.textContent = 'Lädt...';
+  out.textContent = 'L�dt...';
   const payload = { project: 'rheinpfalz', state, customer_text, context };
   const res = await fetch('/api/simulate-decision', {
     method: 'POST',
@@ -587,7 +606,7 @@ document.getElementById('simulate-form').addEventListener('submit', async (e) =>
   out.innerHTML = `
     <div class="kv"><div>Status</div><div>${esc(String(res.status))}</div></div>
     <div class="kv"><div>Intent</div><div>${esc(data.intent || '-')}</div></div>
-    <div class="kv"><div>Nächster State</div><div>${esc(data.next_state || '-')}</div></div>
+    <div class="kv"><div>N�chster State</div><div>${esc(data.next_state || '-')}</div></div>
     <div class="kv"><div>Antwort</div><div>${esc(data.tool_response || '-')}</div></div>
     <div class="kv"><div>end_call</div><div>${esc(String(data.end_call))}</div></div>
     <div class="kv"><div>Request JSON</div><div><pre class="json-box">${esc(JSON.stringify(payload, null, 2))}</pre></div></div>
@@ -610,7 +629,7 @@ document.getElementById('chat-clear')?.addEventListener('click', () => {
   const input = document.getElementById('chat-input');
   if (cidInput) cidInput.value = chatRuntime.call_id;
   if (view) view.innerHTML = '';
-  if (meta) meta.textContent = `call_id: ${chatRuntime.call_id} • state: intro • end_call: false`;
+  if (meta) meta.textContent = `call_id: ${chatRuntime.call_id} � state: intro � end_call: false`;
   if (input) input.focus();
 });
 
@@ -639,7 +658,7 @@ document.getElementById('chat-send-form')?.addEventListener('submit', async (e) 
     }
   });
   if (input) input.value = '';
-  if (meta) meta.textContent = `call_id: ${payload.call_id} • state: ${payload.current_state}`;
+  if (meta) meta.textContent = `call_id: ${payload.call_id} � state: ${payload.current_state}`;
 
   const res = await fetch('/api/chat/send', {
     method: 'POST',
@@ -663,7 +682,7 @@ document.getElementById('chat-send-form')?.addEventListener('submit', async (e) 
   const cidInput = document.getElementById('chat-call-id');
   if (cidInput && !cidInput.value) cidInput.value = chatRuntime.call_id;
   if (meta) {
-    meta.textContent = `call_id: ${chatRuntime.call_id} • state: ${chatRuntime.current_state} • end_call: ${String(Boolean(r.end_call))}`;
+    meta.textContent = `call_id: ${chatRuntime.call_id} � state: ${chatRuntime.current_state} � end_call: ${String(Boolean(r.end_call))}`;
   }
 });
 
@@ -733,19 +752,34 @@ document.getElementById('learning-create-form')?.addEventListener('submit', asyn
     if (out) out.textContent = `Fehler: ${data.error || 'unknown'}`;
     return;
   }
-  if (out) out.textContent = `OK: Frage #${data.id} hinzugefügt`;
+  if (out) out.textContent = `OK: Frage #${data.id} hinzugef�gt`;
   document.getElementById('learning-create-form')?.reset();
   renderLearningCreateStates();
   await loadLearningQueue();
 });
 
-loadLastCall();
-loadLatestTurn();
-loadFacts();
-loadDataView();
-loadCodeTexts();
-loadChatView();
-loadLearningQueue();
+async function bootUi() {
+  try {
+    const res = await fetch('/api/ui-config');
+    if (res.ok) {
+      const cfg = await res.json();
+      UI_CHAT_ONLY = Boolean(cfg.chat_only);
+      applyUiMode();
+    }
+  } catch (_e) {
+    // fallback to full UI when config is not available
+  }
+
+  loadLastCall();
+  loadLatestTurn();
+  loadFacts();
+  loadDataView();
+  loadCodeTexts();
+  loadChatView();
+  loadLearningQueue();
+}
+
+bootUi();
 
 document.getElementById('refresh-data-view')?.addEventListener('click', loadDataView);
 document.getElementById('refresh-code-texts')?.addEventListener('click', loadCodeTexts);
@@ -767,3 +801,5 @@ if (callSubmit) {
     await startCallFromForm();
   });
 }
+
+

@@ -14,6 +14,7 @@ const LLM_FALLBACK_ENABLED = String(process.env.LLM_FALLBACK_ENABLED || "false")
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || "").trim();
 const OPENAI_MODEL = String(process.env.OPENAI_MODEL || "gpt-4o-mini").trim();
 const LATENCY_MODE = String(process.env.LATENCY_MODE || "fast").toLowerCase(); // fast | normal
+const UI_CHAT_ONLY = String(process.env.UI_CHAT_ONLY || "false").toLowerCase() === "true";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const intentsFilePath = path.resolve(__dirname, "..", "data", "intents.json");
@@ -562,6 +563,10 @@ async function upsertPendingLearnedQuestion(client, projectKey, stateKey, custom
 app.get("/health", async (_req, res) => {
   await pool.query("select 1");
   res.json({ ok: true });
+});
+
+app.get("/api/ui-config", (_req, res) => {
+  res.json({ chat_only: UI_CHAT_ONLY });
 });
 
 app.post("/api/latency-probe", async (req, res) => {
