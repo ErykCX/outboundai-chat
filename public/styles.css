@@ -103,6 +103,12 @@ td code{white-space:pre-wrap;word-break:break-word}
 .chat-actions{display:flex;gap:6px}
 #chat-clear{background:linear-gradient(180deg,#ffffff,#eef3fb);color:#13243e;border:1px solid #c7d8f5;box-shadow:none}
 #chat-clear:hover{background:linear-gradient(180deg,#ffffff,#e8f0ff)}
+.btn-lg{
+  padding:12px 22px !important;
+  font-size:15px;
+  font-weight:700;
+  border-radius:12px !important;
+}
 .learning-item{border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px;background:#fff}
 .learning-item textarea{width:100%;min-height:72px;border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px}
 .learning-item button{margin-top:6px;border:0;background:var(--primary);color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer}
