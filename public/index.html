@@ -1,0 +1,188 @@
+﻿<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OutboundAI - Minimal</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header><h1>OutboundAI</h1></header>
+
+  <main>
+    <nav class="tabs">
+      <button class="tab active" data-tab="operativ">Operativ</button>
+      <button class="tab" data-tab="chat">Chat</button>
+      <button class="tab" data-tab="wissensbank">Wissensbank</button>
+      <button class="tab" data-tab="lernqueue">Lern-Queue</button>
+      <button class="tab" data-tab="datenansicht">Datenansicht</button>
+      <button class="tab" data-tab="codetexte">Code-Texte</button>
+    </nav>
+
+    <section id="operativ" class="panel active">
+      <h2>Operativ</h2>
+      <p class="hint">1) Anruf starten -> 2) Kunde spricht -> 3) Bot entscheidet (Intent + State + Antwort)</p>
+
+      <div class="card">
+        <h3>Anruf starten</h3>
+        <form id="call-form" class="row">
+          <input id="to-number" placeholder="Telefon, z.B. +49123456789" required />
+          <button id="call-submit" type="submit">Anruf starten</button>
+        </form>
+        <p id="ui-status">UI wird geladen...</p>
+        <p id="call-result"></p>
+      </div>
+
+      <div class="card">
+        <h3>Letzter Anruf (warum beendet?)</h3>
+        <button id="refresh-last-call">Aktualisieren</button>
+        <div id="last-call"></div>
+      </div>
+
+      <div class="card">
+        <h3>Live-Test (eine Entscheidung)</h3>
+        <form id="simulate-form" class="row">
+          <select id="sim-state" required></select>
+          <textarea id="sim-text" placeholder="Kundentext (frei eingeben)" required></textarea>
+          <div class="context-grid">
+            <label><input type="checkbox" id="ctx-identity" /> identity_confirmed = true</label>
+            <label><input type="checkbox" id="ctx-address" /> address_confirmed = true</label>
+            <label><input type="checkbox" id="ctx-email" /> email_confirmed = true</label>
+            <label><input type="checkbox" id="ctx-human" /> human_recovery_attempted = true</label>
+          </div>
+          <button type="submit">Testen</button>
+        </form>
+        <p class="hint">Dieser Test sendet denselben Payload-Typ wie der Webhook an den Backend-Handler.</p>
+        <div id="sim-minimal"></div>
+      </div>
+
+      <div class="card">
+        <h3>Letzte Bot-Entscheidung (Live)</h3>
+        <button id="refresh-latest-turn">Aktualisieren</button>
+        <div id="latest-turn"></div>
+      </div>
+
+    </section>
+
+    <section id="chat" class="panel">
+      <h2>Chat</h2>
+      <p class="hint">Interaktiver Chat-Test mit derselben Backend-Logik wie beim Webhook.</p>
+      <div class="card">
+        <form id="chat-form" class="chat-row">
+          <label for="chat-call-id">Call ID</label>
+          <input id="chat-call-id" placeholder="call_id (optional, leer = letzter Anruf)" />
+          <div class="chat-actions">
+            <button id="refresh-chat" type="submit">Chat laden</button>
+            <button id="chat-clear" type="button">Neu / Leeren</button>
+          </div>
+        </form>
+        <form id="chat-send-form" class="chat-row">
+          <label for="chat-input">Nachricht</label>
+          <input id="chat-input" placeholder="Nachricht an den Bot..." />
+          <button id="chat-send" type="submit">Senden</button>
+        </form>
+        <div id="chat-meta" class="hint"></div>
+        <div id="chat-view" class="chat"></div>
+      </div>
+    </section>
+
+    <section id="wissensbank" class="panel">
+      <h2>Wissensbank</h2>
+      <p class="hint">Hier bearbeitest du die Daten, die der Bot nutzt.</p>
+
+      <div class="card">
+        <h3>Facts</h3>
+        <form id="fact-form" class="row">
+          <input id="fact-key" placeholder="fact_key" required />
+          <input id="fact-value" placeholder='JSON, z.B. {"price":"0 EUR"}' required />
+          <button type="submit">Speichern</button>
+        </form>
+        <p id="fact-result"></p>
+        <div id="facts-list"></div>
+      </div>
+
+      <div class="card">
+        <h3>Intents (eigene)</h3>
+        <form id="intent-form" class="row">
+          <input id="intent-key" placeholder="intent_key" required />
+          <input id="intent-phrases" placeholder="phrase1, phrase2" required />
+          <button type="submit">Speichern</button>
+        </form>
+        <div id="intents-list"></div>
+      </div>
+
+      <div class="card">
+        <h3>Antworttexte pro State</h3>
+        <div id="state-responses"></div>
+      </div>
+
+      <div class="card">
+        <h3>Gesprächsbaum (Flow)</h3>
+        <p class="hint">Vereinfachte Sicht auf mögliche State-Übergänge.</p>
+        <div id="state-tree"></div>
+      </div>
+
+    </section>
+
+    <section id="lernqueue" class="panel">
+      <h2>Lern-Queue</h2>
+      <p class="hint">LLM-Fragen durchsuchen, freigeben und mehreren States zuordnen.</p>
+      <div class="card">
+        <h3>Frage manuell hinzufügen</h3>
+        <form id="learning-create-form" class="row">
+          <input id="learning-create-question" placeholder="Frage (customer_text)" required />
+          <input id="learning-create-intent" placeholder="intent (z.B. info_request)" />
+          <textarea id="learning-create-answer" placeholder="Antworttext (optional bei pending)"></textarea>
+          <select id="learning-create-status">
+            <option value="pending">pending</option>
+            <option value="approved">approved</option>
+          </select>
+          <div id="learning-create-states" class="learning-states"></div>
+          <button type="submit">Hinzufügen</button>
+        </form>
+        <p id="learning-create-result" class="hint"></p>
+      </div>
+      <div class="card">
+        <div class="row">
+          <select id="learning-status">
+            <option value="pending">pending</option>
+            <option value="approved">approved</option>
+            <option value="all">all</option>
+          </select>
+          <select id="learning-state-filter">
+            <option value="all">alle states</option>
+          </select>
+          <input id="learning-search" placeholder="Frage durchsuchen..." />
+          <button id="refresh-learning" type="button">Aktualisieren</button>
+        </div>
+        <div id="learning-list"></div>
+      </div>
+    </section>
+
+    <section id="datenansicht" class="panel">
+      <h2>Datenansicht</h2>
+      <p class="hint">Vollansicht aller Bot-Texte und Entscheidungsfelder aus der Datenbank.</p>
+      <div class="card">
+        <div class="row">
+          <input id="data-project" value="rheinpfalz" placeholder="project" />
+          <button id="refresh-data-view" type="button">Aktualisieren</button>
+        </div>
+        <div id="data-summary" class="kv"></div>
+      </div>
+      <div id="data-sections"></div>
+    </section>
+
+    <section id="codetexte" class="panel">
+      <h2>Code-Texte</h2>
+      <p class="hint">Texte direkt aus dem Backend-Code (TEXT/FAST_TEXT).</p>
+      <div class="card">
+        <button id="refresh-code-texts" type="button">Aktualisieren</button>
+        <div id="code-text-summary" class="kv"></div>
+      </div>
+      <div id="code-text-sections"></div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
