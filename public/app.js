@@ -59,7 +59,8 @@ const FLOW_ORDER = [
 const chatRuntime = {
   call_id: '',
   current_state: 'intro',
-  context: {}
+  context: {},
+  awaiting_user_hello: false
 };
 let learningStateOptions = [...FLOW_ORDER];
 function refreshLearningStateFilterOptions() {
@@ -135,6 +136,7 @@ function resetChatRuntime() {
   chatRuntime.call_id = `chat-${Date.now()}`;
   chatRuntime.current_state = 'intro';
   chatRuntime.context = {};
+  chatRuntime.awaiting_user_hello = false;
 }
 
 async function loadLastCall() {
@@ -627,6 +629,16 @@ async function sendChatTurn(text) {
   const cleanText = String(text || '').trim();
   if (!cleanText) return;
 
+  if (chatRuntime.awaiting_user_hello) {
+    const normalized = cleanText.toLowerCase();
+    const isHello = normalized.includes('hallo') || normalized.includes('hi') || normalized.includes('guten tag');
+    if (!isHello) {
+      appendChatMessage('bot', 'Bitte starten Sie kurz mit „Hallo“.');
+      return;
+    }
+    chatRuntime.awaiting_user_hello = false;
+  }
+
   const manualCallId = (document.getElementById('chat-call-id')?.value || '').trim();
   if (manualCallId) chatRuntime.call_id = manualCallId;
   const payload = {
@@ -686,8 +698,8 @@ document.getElementById('chat-clear')?.addEventListener('click', async () => {
   if (view) view.innerHTML = '';
   if (meta) meta.textContent = `call_id: ${chatRuntime.call_id} | state: intro | end_call: false`;
   if (input) input.focus();
-
-  await sendChatTurn('Hallo');
+  chatRuntime.awaiting_user_hello = true;
+  appendChatMessage('bot', 'Hallo, ich bin Anna KI Assistent von Eryk Bochenski.');
 });
 
 document.getElementById('chat-send-form')?.addEventListener('submit', async (e) => {
